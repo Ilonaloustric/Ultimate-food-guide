@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Ultimate Food Guide</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmXCiX720g2tm8oDaazXeeBc4syx1pqIg&libraries=places&callback=initGoogleMaps" async defer></script>
     <style>
         :root {
             --terracotta: #c2543b;
@@ -464,7 +463,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>The Ultimate Food Guide</h1>
+            <h1>🍽️ The Ultimate Food Guide</h1>
             
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('restaurants')">🍴 Restaurants</button>
@@ -615,6 +614,10 @@
                 <div class="form-group">
                     <label>Notes</label>
                     <textarea id="rest-notes" placeholder="What did you love about this place?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Last Visited</label>
+                    <input type="date" id="rest-date" value="">
                 </div>
                 <div class="form-group">
                     <label>Photo (Optional)</label>
@@ -774,6 +777,7 @@
         let currentTab = 'restaurants';
         let googleAutocomplete = null;
         let locationAutocomplete = null;
+        let googleMapsLoaded = false;
 
         // Load data from localStorage with error handling
         function loadData() {
@@ -815,6 +819,7 @@
         // Google Maps callback
         function initGoogleMaps() {
             console.log('Google Maps loaded successfully!');
+            googleMapsLoaded = true;
         }
 
         function init() {
@@ -967,6 +972,8 @@
         // RESTAURANTS
         function openRestaurantModal() {
             document.getElementById('restaurant-modal').classList.add('active');
+            // Set today's date as default
+            document.getElementById('rest-date').value = new Date().toISOString().split('T')[0];
             setTimeout(() => {
                 initAutocomplete();
             }, 100);
@@ -1054,6 +1061,7 @@
                 starDishes: document.getElementById('rest-dishes').value,
                 rating: parseInt(document.getElementById('rest-rating').value),
                 notes: document.getElementById('rest-notes').value,
+                lastVisited: document.getElementById('rest-date').value || new Date().toISOString().split('T')[0],
                 photo: photoData,
                 isFavorite: false,
                 createdAt: new Date().toISOString()
@@ -1127,6 +1135,7 @@
                         <div class="card-title">${r.name}</div>
                         <span class="tag">${r.cuisine}</span>
                         <div class="card-info">📍 ${r.location}</div>
+                        ${r.lastVisited ? `<div class="card-info" style="color: #999; font-size: 0.9em;">🕒 Last visited: ${getTimeSince(r.lastVisited)}</div>` : ''}
                         ${r.starDishes ? `<div class="card-info">⭐ ${r.starDishes}</div>` : ''}
                         <div class="rating">${'⭐'.repeat(r.rating)}</div>
                         ${r.notes ? `<div class="card-info">💭 ${r.notes}</div>` : ''}
@@ -1168,11 +1177,22 @@
         }
 
         function renderMap() {
+            // Check if Google Maps is loaded
+            if (!window.google || !window.google.maps) {
+                console.log('Waiting for Google Maps to load...');
+                setTimeout(renderMap, 500);
+                return;
+            }
+
             if (!map) {
                 map = new google.maps.Map(document.getElementById('map'), {
                     center: { lat: 51.5074, lng: -0.1278 },
-                    zoom: 12
+                    zoom: 12,
+                    mapTypeControl: true,
+                    streetViewControl: true,
+                    fullscreenControl: true
                 });
+                console.log('Google Map initialized');
             }
 
             markers.forEach(marker => marker.setMap(null));
@@ -1433,8 +1453,26 @@
                 `${wines.length} wine${wines.length !== 1 ? 's' : ''}`;
         }
 
+        // Calculate time since last visit
+        function getTimeSince(dateString) {
+            const visitDate = new Date(dateString);
+            const now = new Date();
+            const diffTime = Math.abs(now - visitDate);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+            return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
+        }
+
         // Initialize on page load
         window.addEventListener('load', init);
     </script>
+    
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmXCiX720g2tm8oDaazXeeBc4syx1pqIg&libraries=places&callback=initGoogleMaps" async defer></script>
 </body>
 </html>
