@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ultimate Food Guide</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmXCiX720g2tm8oDaazXeeBc4syx1pqIg&libraries=places&callback=initGoogleMaps" async defer></script>
+    <style>
+        :root {
+            --terracotta: #c2543b;
+            --terracotta-light: #d87a65;
+            --terracotta-dark: #a03d28;
+            --olive: #6b7c5a;
+            --olive-light: #8a9d79;
+            --olive-dark: #4f5e42;
+            --cream: #f9f6f2;
+            --warm-white: #fefcfa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, #f0ebe5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: var(--warm-white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(194, 84, 59, 0.12);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            background: white;
+            color: var(--olive);
+            border: 2px solid var(--olive);
+        }
+
+        .tab.active {
+            background: var(--olive);
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: var(--cream);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(194, 84, 59, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--terracotta);
+            border: 2px solid var(--terracotta);
+        }
+
+        .btn-secondary:hover {
+            background: var(--terracotta);
+            color: white;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .filters {
+            background: var(--warm-white);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(194, 84, 59, 0.08);
+        }
+
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px;
+            border: 2px solid #e8dfd8;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--terracotta);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-btn {
+            padding: 10px 20px;
+            border: 2px solid #e8dfd8;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .view-btn.active {
+            background: var(--olive);
+            color: white;
+            border-color: var(--olive);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--warm-white);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(194, 84, 59, 0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(194, 84, 59, 0.15);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 5px 15px;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-dark) 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            margin-right: 5px;
+        }
+
+        .card-info {
+            color: #666;
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .rating {
+            color: #fbbf24;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .icon-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1em;
+        }
+
+        .favorite-btn {
+            background: #fee;
+            color: #e11d48;
+        }
+
+        .favorite-btn.active {
+            background: #e11d48;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #fee;
+            color: #dc2626;
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        #map {
+            height: 600px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .empty-state {
+            background: white;
+            padding: 60px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .empty-state h2 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .empty-state p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .map-button {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--olive);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .map-button:hover {
+            background: var(--olive-dark);
+        }
+
+        .mini-map {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 2px solid #e8dfd8;
+        }
+
+        .recipe-content {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+
+        .photo-upload-area {
+            border: 2px dashed var(--olive);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--cream);
+        }
+
+        .photo-upload-area:hover {
+            background: #e8dfd8;
+            border-color: var(--olive-dark);
+        }
+
+        .photo-upload-area input[type="file"] {
+            display: none;
+        }
+
+        .photo-preview {
+            max-width: 100%;
+            max-height: 250px;
+            margin-top: 15px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .ingredient-tag {
+            display: inline-block;
+            background: var(--cream);
+            color: var(--olive);
+            padding: 5px 12px;
+            border-radius: 15px;
+            margin: 3px;
+            font-size: 0.85em;
+            border: 1px solid #e8dfd8;
+        }
+
+        /* Style Google Places Autocomplete dropdown */
+        .pac-container {
+            border-radius: 10px;
+            margin-top: 5px;
+            border: 2px solid #e8dfd8;
+            box-shadow: 0 4px 15px rgba(194, 84, 59, 0.1);
+            font-family: inherit;
+            z-index: 10000;
+        }
+
+        .pac-item {
+            padding: 10px;
+            border-top: 1px solid #f5f5f5;
+            cursor: pointer;
+        }
+
+        .pac-item:hover {
+            background-color: var(--cream);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ The Ultimate Food Guide</h1>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('restaurants')">🍴 Restaurants</button>
+                <button class="tab" onclick="switchTab('recipes')">📖 Recipes & Inspiration</button>
+                <button class="tab" onclick="switchTab('wines')">🍷 Wine Log</button>
+            </div>
+        </div>
+
+        <!-- RESTAURANTS TAB -->
+        <div id="restaurants-tab" class="tab-content active">
+            <div class="section-header">
+                <h2 style="color: var(--olive);" id="restaurant-count">0 saved places</h2>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="openRestaurantModal()">➕ Add Restaurant</button>
+                    <div class="view-toggle">
+                        <button class="view-btn active" onclick="switchRestaurantView('grid')">📋 Grid</button>
+                        <button class="view-btn" onclick="switchRestaurantView('map')">🗺️ Map</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters">
+                <input type="text" class="filter-input" id="restaurant-search" placeholder="🔍 Search restaurants..." oninput="filterRestaurants()">
+                <select class="filter-input" id="cuisine-filter" onchange="filterRestaurants()" style="flex: 0.5;">
+                    <option value="">All Cuisines</option>
+                </select>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="favorites-only" onchange="filterRestaurants()">
+                    <span>❤️ Favorites Only</span>
+                </label>
+            </div>
+
+            <div id="map-view" style="display: none;">
+                <div id="map"></div>
+            </div>
+
+            <div id="grid-view">
+                <div id="restaurant-grid" class="grid"></div>
+                <div id="restaurant-empty" class="empty-state" style="display: none;">
+                    <h2>No restaurants yet!</h2>
+                    <p>Start building your collection of favorite places to eat.</p>
+                    <button class="btn btn-primary" onclick="openRestaurantModal()">Add Your First Restaurant</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECIPES TAB -->
+        <div id="recipes-tab" class="tab-content">
+            <div class="section-header">
+                <h2 style="color: var(--olive);" id="recipe-count">0 recipes</h2>
+                <button class="btn btn-primary" onclick="openRecipeModal()">➕ Add Recipe</button>
+            </div>
+
+            <div class="filters">
+                <input type="text" class="filter-input" id="recipe-search" placeholder="🔍 Search recipes or ingredients..." oninput="filterRecipes()">
+                <select class="filter-input" id="category-filter" onchange="filterRecipes()" style="flex: 0.5;">
+                    <option value="">All Categories</option>
+                    <option value="Main Course">Main Course</option>
+                    <option value="Appetizer">Appetizer</option>
+                    <option value="Dessert">Dessert</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Soup">Soup</option>
+                    <option value="Salad">Salad</option>
+                    <option value="Side Dish">Side Dish</option>
+                    <option value="Baking">Baking</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div id="recipe-grid" class="grid"></div>
+            <div id="recipe-empty" class="empty-state" style="display: none;">
+                <h2>No recipes found!</h2>
+                <p>Try a different search or add a new recipe.</p>
+                <button class="btn btn-primary" onclick="openRecipeModal()">Add Your First Recipe</button>
+            </div>
+        </div>
+
+        <!-- WINES TAB -->
+        <div id="wines-tab" class="tab-content">
+            <div class="section-header">
+                <h2 style="color: var(--olive);" id="wine-count">0 wines</h2>
+                <button class="btn btn-primary" onclick="openWineModal()">➕ Add Wine</button>
+            </div>
+
+            <div class="filters">
+                <input type="text" class="filter-input" id="wine-search" placeholder="🔍 Search wines..." oninput="filterWines()">
+                <select class="filter-input" id="wine-type-filter" onchange="filterWines()" style="flex: 0.5;">
+                    <option value="">All Types</option>
+                    <option value="Red">Red</option>
+                    <option value="White">White</option>
+                    <option value="Rosé">Rosé</option>
+                    <option value="Sparkling">Sparkling</option>
+                    <option value="Dessert">Dessert</option>
+                </select>
+            </div>
+
+            <div id="wine-grid" class="grid"></div>
+            <div id="wine-empty" class="empty-state" style="display: none;">
+                <h2>No wines yet!</h2>
+                <p>Start logging your wine discoveries and tasting notes.</p>
+                <button class="btn btn-primary" onclick="openWineModal()">Add Your First Wine</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESTAURANT MODAL -->
+    <div id="restaurant-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 25px;">Add New Restaurant</h2>
+            <form id="restaurant-form" onsubmit="addRestaurant(event)">
+                <div class="form-group">
+                    <label>Restaurant Name *</label>
+                    <input type="text" id="rest-name" required placeholder="Start typing a restaurant name..." autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Cuisine Type *</label>
+                    <select id="rest-cuisine" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Location *</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="rest-location" required placeholder="e.g., 123 Main St, London" style="padding-right: 120px;">
+                        <button type="button" class="map-button" onclick="toggleMiniMap()">📍 Show Map</button>
+                    </div>
+                    <div id="mini-map-container" style="display: none;">
+                        <div id="mini-map" class="mini-map"></div>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 8px;">Click on the map to set the restaurant location</p>
+                    </div>
+                </div>
+                <div class="form-group" style="display: none;">
+                    <input type="number" id="rest-lat" step="any">
+                    <input type="number" id="rest-lng" step="any">
+                </div>
+                <div class="form-group">
+                    <label>Star Dishes</label>
+                    <textarea id="rest-dishes" placeholder="What are the must-try dishes? (e.g., Truffle Pasta, Margherita Pizza)"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Rating</label>
+                    <select id="rest-rating">
+                        <option value="5">⭐⭐⭐⭐⭐</option>
+                        <option value="4">⭐⭐⭐⭐</option>
+                        <option value="3">⭐⭐⭐</option>
+                        <option value="2">⭐⭐</option>
+                        <option value="1">⭐</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="rest-notes" placeholder="What did you love about this place?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Photo (Optional)</label>
+                    <div class="photo-upload-area" onclick="document.getElementById('rest-photo').click()">
+                        <div style="font-size: 3em; margin-bottom: 10px;">📷</div>
+                        <div style="color: var(--olive); font-weight: 600;">Click to upload a photo</div>
+                        <div style="color: #999; font-size: 0.9em; margin-top: 5px;">JPG, PNG, or WEBP</div>
+                        <input type="file" id="rest-photo" accept="image/*" onchange="previewPhoto(this, 'rest-photo-preview')">
+                    </div>
+                    <img id="rest-photo-preview" class="photo-preview" style="display: none;">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Restaurant</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRestaurantModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- RECIPE MODAL -->
+    <div id="recipe-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 25px;">Add Recipe</h2>
+            <form id="recipe-form" onsubmit="addRecipe(event)">
+                <div class="form-group">
+                    <label>Recipe Title *</label>
+                    <input type="text" id="recipe-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="recipe-category">
+                        <option value="Main Course">Main Course</option>
+                        <option value="Appetizer">Appetizer</option>
+                        <option value="Dessert">Dessert</option>
+                        <option value="Breakfast">Breakfast</option>
+                        <option value="Soup">Soup</option>
+                        <option value="Salad">Salad</option>
+                        <option value="Side Dish">Side Dish</option>
+                        <option value="Baking">Baking</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ingredients *</label>
+                    <textarea id="recipe-ingredients" required placeholder="List ingredients, one per line..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Instructions *</label>
+                    <textarea id="recipe-instructions" required placeholder="Step by step instructions..." style="min-height: 150px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Cooking Time</label>
+                    <input type="text" id="recipe-time" placeholder="e.g., 45 minutes">
+                </div>
+                <div class="form-group">
+                    <label>Notes & Inspiration</label>
+                    <textarea id="recipe-notes" placeholder="Any tips, variations, or inspiration behind this recipe..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Recipe</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRecipeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- WINE MODAL -->
+    <div id="wine-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 25px;">Add Wine</h2>
+            <form id="wine-form" onsubmit="addWine(event)">
+                <div class="form-group">
+                    <label>Wine Name *</label>
+                    <input type="text" id="wine-name" required placeholder="e.g., Château Margaux 2015">
+                </div>
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="wine-type" required>
+                        <option value="Red">Red</option>
+                        <option value="White">White</option>
+                        <option value="Rosé">Rosé</option>
+                        <option value="Sparkling">Sparkling</option>
+                        <option value="Dessert">Dessert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Region/Country</label>
+                    <input type="text" id="wine-region" placeholder="e.g., Bordeaux, France">
+                </div>
+                <div class="form-group">
+                    <label>Grape Variety</label>
+                    <input type="text" id="wine-grape" placeholder="e.g., Cabernet Sauvignon, Chardonnay">
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input type="text" id="wine-year" placeholder="e.g., 2018">
+                </div>
+                <div class="form-group">
+                    <label>Rating</label>
+                    <select id="wine-rating">
+                        <option value="5">⭐⭐⭐⭐⭐</option>
+                        <option value="4">⭐⭐⭐⭐</option>
+                        <option value="3">⭐⭐⭐</option>
+                        <option value="2">⭐⭐</option>
+                        <option value="1">⭐</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tasting Notes</label>
+                    <textarea id="wine-notes" placeholder="Describe the flavors, aroma, body, finish..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Food Pairings</label>
+                    <textarea id="wine-pairings" placeholder="What foods pair well with this wine?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Photo (Optional)</label>
+                    <div class="photo-upload-area" onclick="document.getElementById('wine-photo').click()">
+                        <div style="font-size: 3em; margin-bottom: 10px;">📷</div>
+                        <div style="color: var(--olive); font-weight: 600;">Click to upload a photo</div>
+                        <div style="color: #999; font-size: 0.9em; margin-top: 5px;">JPG, PNG, or WEBP</div>
+                        <input type="file" id="wine-photo" accept="image/*" onchange="previewPhoto(this, 'wine-photo-preview')">
+                    </div>
+                    <img id="wine-photo-preview" class="photo-preview" style="display: none;">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Wine</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeWineModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const CUISINES = [
+            'Afghan', 'Albanian', 'Algerian', 'American', 'Argentinian', 'Armenian', 'Australian', 
+            'Austrian', 'Bangladeshi', 'Barbecue', 'Belgian', 'Brazilian', 'British', 'Bulgarian', 
+            'Burmese', 'Cajun/Creole', 'Cambodian', 'Canadian', 'Caribbean', 'Chilean', 'Chinese', 
+            'Colombian', 'Cuban', 'Czech', 'Danish', 'Dutch', 'Egyptian', 'Ethiopian', 'Filipino', 
+            'French', 'Georgian', 'German', 'Greek', 'Hungarian', 'Indian', 'Indonesian', 'Iranian', 
+            'Iraqi', 'Irish', 'Israeli', 'Italian', 'Jamaican', 'Japanese', 'Jordanian', 'Korean', 
+            'Lebanese', 'Malaysian', 'Mediterranean', 'Mexican', 'Middle Eastern', 'Mongolian', 
+            'Moroccan', 'Nepalese', 'Nigerian', 'Norwegian', 'Pakistani', 'Peruvian', 'Polish', 
+            'Portuguese', 'Romanian', 'Russian', 'Salvadoran', 'Scandinavian', 'Scottish', 
+            'Singaporean', 'South African', 'Spanish', 'Sri Lankan', 'Swedish', 'Swiss', 'Syrian', 
+            'Taiwanese', 'Thai', 'Tibetan', 'Turkish', 'Ukrainian', 'Venezuelan', 'Vietnamese', 'Other'
+        ];
+
+        let restaurants = [];
+        let recipes = [];
+        let wines = [];
+        let map = null;
+        let miniMap = null;
+        let miniMapMarker = null;
+        let markers = [];
+        let currentRestaurantView = 'grid';
+        let currentTab = 'restaurants';
+        let googleAutocomplete = null;
+        let locationAutocomplete = null;
+
+        // Load data from localStorage with error handling
+        function loadData() {
+            try {
+                const savedRestaurants = localStorage.getItem('restaurants');
+                const savedRecipes = localStorage.getItem('recipes');
+                const savedWines = localStorage.getItem('wines');
+                
+                restaurants = savedRestaurants ? JSON.parse(savedRestaurants) : [];
+                recipes = savedRecipes ? JSON.parse(savedRecipes) : [];
+                wines = savedWines ? JSON.parse(savedWines) : [];
+                
+                console.log('Data loaded:', { restaurants: restaurants.length, recipes: recipes.length, wines: wines.length });
+            } catch (error) {
+                console.error('Error loading data:', error);
+                restaurants = [];
+                recipes = [];
+                wines = [];
+            }
+        }
+
+        // Save data to localStorage with error handling
+        function saveData(type) {
+            try {
+                if (type === 'restaurants') {
+                    localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                } else if (type === 'recipes') {
+                    localStorage.setItem('recipes', JSON.stringify(recipes));
+                } else if (type === 'wines') {
+                    localStorage.setItem('wines', JSON.stringify(wines));
+                }
+                console.log(`${type} saved successfully`);
+            } catch (error) {
+                console.error(`Error saving ${type}:`, error);
+                alert(`Failed to save ${type}. Your browser storage might be full.`);
+            }
+        }
+
+        // Google Maps callback
+        function initGoogleMaps() {
+            console.log('Google Maps loaded successfully!');
+        }
+
+        function init() {
+            loadData();
+            populateCuisineDropdown();
+            renderRestaurants();
+            renderRecipes();
+            renderWines();
+            updateCounts();
+        }
+
+        // Photo preview
+        function previewPhoto(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Initialize Google Places Autocomplete when modal opens
+        function initAutocomplete() {
+            const nameInput = document.getElementById('rest-name');
+            const locationInput = document.getElementById('rest-location');
+            
+            if (window.google && window.google.maps && window.google.maps.places) {
+                // Restaurant name autocomplete
+                if (!googleAutocomplete) {
+                    googleAutocomplete = new google.maps.places.Autocomplete(nameInput, {
+                        types: ['establishment'],
+                        fields: ['name', 'formatted_address', 'geometry', 'types']
+                    });
+
+                    googleAutocomplete.addListener('place_changed', function() {
+                        const place = googleAutocomplete.getPlace();
+                        if (place.geometry) {
+                            document.getElementById('rest-location').value = place.formatted_address || '';
+                            document.getElementById('rest-lat').value = place.geometry.location.lat();
+                            document.getElementById('rest-lng').value = place.geometry.location.lng();
+                            
+                            if (place.types) {
+                                const cuisineGuess = guessCuisineFromTypes(place.types);
+                                if (cuisineGuess) {
+                                    document.getElementById('rest-cuisine').value = cuisineGuess;
+                                }
+                            }
+                            
+                            if (miniMap && place.geometry) {
+                                if (miniMapMarker) {
+                                    miniMapMarker.setMap(null);
+                                }
+                                miniMapMarker = new google.maps.Marker({
+                                    position: place.geometry.location,
+                                    map: miniMap
+                                });
+                                miniMap.setCenter(place.geometry.location);
+                                miniMap.setZoom(15);
+                            }
+                        }
+                    });
+                }
+
+                // Location autocomplete
+                if (!locationAutocomplete) {
+                    locationAutocomplete = new google.maps.places.Autocomplete(locationInput, {
+                        types: ['address', 'establishment'],
+                        fields: ['formatted_address', 'geometry']
+                    });
+
+                    locationAutocomplete.addListener('place_changed', function() {
+                        const place = locationAutocomplete.getPlace();
+                        if (place.geometry) {
+                            document.getElementById('rest-lat').value = place.geometry.location.lat();
+                            document.getElementById('rest-lng').value = place.geometry.location.lng();
+                             
+                            if (miniMap) {
+                                if (miniMapMarker) {
+                                    miniMapMarker.setMap(null);
+                                }
+                                miniMapMarker = new google.maps.Marker({
+                                    position: place.geometry.location,
+                                    map: miniMap
+                                });
+                                miniMap.setCenter(place.geometry.location);
+                                miniMap.setZoom(15);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function guessCuisineFromTypes(types) {
+            const typeMap = {
+                'italian_restaurant': 'Italian',
+                'japanese_restaurant': 'Japanese',
+                'chinese_restaurant': 'Chinese',
+                'mexican_restaurant': 'Mexican',
+                'indian_restaurant': 'Indian',
+                'thai_restaurant': 'Thai',
+                'french_restaurant': 'French',
+                'korean_restaurant': 'Korean',
+                'vietnamese_restaurant': 'Vietnamese',
+                'greek_restaurant': 'Greek',
+                'spanish_restaurant': 'Spanish',
+                'turkish_restaurant': 'Turkish',
+                'american_restaurant': 'American',
+                'brazilian_restaurant': 'Brazilian',
+                'mediterranean_restaurant': 'Mediterranean',
+                'middle_eastern_restaurant': 'Middle Eastern',
+            };
+
+            for (let type of types) {
+                if (typeMap[type]) return typeMap[type];
+            }
+            return null;
+        }
+
+        function populateCuisineDropdown() {
+            const select = document.getElementById('rest-cuisine');
+            const filter = document.getElementById('cuisine-filter');
+            
+            CUISINES.forEach(cuisine => {
+                const opt1 = document.createElement('option');
+                opt1.value = cuisine;
+                opt1.textContent = cuisine;
+                select.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = cuisine;
+                opt2.textContent = cuisine;
+                filter.appendChild(opt2);
+            });
+        }
+
+        // TAB SWITCHING
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+        }
+
+        // RESTAURANTS
+        function openRestaurantModal() {
+            document.getElementById('restaurant-modal').classList.add('active');
+            setTimeout(() => {
+                initAutocomplete();
+            }, 100);
+        }
+
+        function closeRestaurantModal() {
+            document.getElementById('restaurant-modal').classList.remove('active');
+            document.getElementById('restaurant-form').reset();
+            document.getElementById('mini-map-container').style.display = 'none';
+            document.getElementById('rest-photo-preview').style.display = 'none';
+            if (miniMapMarker && miniMap) {
+                miniMapMarker.setMap(null);
+                miniMapMarker = null;
+            }
+            if (googleAutocomplete) {
+                google.maps.event.clearInstanceListeners(document.getElementById('rest-name'));
+                googleAutocomplete = null;
+            }
+            if (locationAutocomplete) {
+                google.maps.event.clearInstanceListeners(document.getElementById('rest-location'));
+                locationAutocomplete = null;
+            }
+        }
+
+        function toggleMiniMap() {
+            const container = document.getElementById('mini-map-container');
+            
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                
+                if (!miniMap) {
+                    setTimeout(() => {
+                        miniMap = new google.maps.Map(document.getElementById('mini-map'), {
+                            center: { lat: 51.5074, lng: -0.1278 },
+                            zoom: 13
+                        });
+                        
+                        miniMap.addListener('click', function(e) {
+                            if (miniMapMarker) {
+                                miniMapMarker.setMap(null);
+                            }
+                            miniMapMarker = new google.maps.Marker({
+                                position: e.latLng,
+                                map: miniMap
+                            });
+                            document.getElementById('rest-lat').value = e.latLng.lat();
+                            document.getElementById('rest-lng').value = e.latLng.lng();
+                            
+                            const geocoder = new google.maps.Geocoder();
+                            geocoder.geocode({ location: e.latLng }, function(results, status) {
+                                if (status === 'OK' && results[0]) {
+                                    document.getElementById('rest-location').value = results[0].formatted_address;
+                                }
+                            });
+                        });
+                    }, 100);
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function addRestaurant(event) {
+            event.preventDefault();
+            
+            const photoInput = document.getElementById('rest-photo');
+            
+            if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    finishAddRestaurant(e.target.result);
+                }
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                finishAddRestaurant(null);
+            }
+        }
+
+        function finishAddRestaurant(photoData) {
+            const restaurant = {
+                id: Date.now().toString(),
+                name: document.getElementById('rest-name').value,
+                cuisine: document.getElementById('rest-cuisine').value,
+                location: document.getElementById('rest-location').value,
+                starDishes: document.getElementById('rest-dishes').value,
+                rating: parseInt(document.getElementById('rest-rating').value),
+                notes: document.getElementById('rest-notes').value,
+                photo: photoData,
+                isFavorite: false,
+                createdAt: new Date().toISOString()
+            };
+
+            const lat = document.getElementById('rest-lat').value;
+            const lng = document.getElementById('rest-lng').value;
+            if (lat && lng) {
+                restaurant.coordinates = { lat: parseFloat(lat), lng: parseFloat(lng) };
+            }
+
+            restaurants.push(restaurant);
+            saveData('restaurants');
+            renderRestaurants();
+            updateCounts();
+            closeRestaurantModal();
+        }
+
+        function toggleFavorite(id) {
+            const restaurant = restaurants.find(r => r.id === id);
+            if (restaurant) {
+                restaurant.isFavorite = !restaurant.isFavorite;
+                saveData('restaurants');
+                renderRestaurants();
+            }
+        }
+
+        function deleteRestaurant(id) {
+            if (confirm('Are you sure you want to delete this restaurant?')) {
+                restaurants = restaurants.filter(r => r.id !== id);
+                saveData('restaurants');
+                renderRestaurants();
+                updateCounts();
+            }
+        }
+
+        function filterRestaurants() {
+            renderRestaurants();
+        }
+
+        function getFilteredRestaurants() {
+            const search = document.getElementById('restaurant-search').value.toLowerCase();
+            const cuisineFilter = document.getElementById('cuisine-filter').value;
+            const favoritesOnly = document.getElementById('favorites-only').checked;
+
+            return restaurants.filter(r => {
+                const matchesSearch = r.name.toLowerCase().includes(search) || 
+                                    r.location.toLowerCase().includes(search) ||
+                                    (r.notes && r.notes.toLowerCase().includes(search)) ||
+                                    (r.starDishes && r.starDishes.toLowerCase().includes(search));
+                const matchesCuisine = !cuisineFilter || r.cuisine === cuisineFilter;
+                const matchesFavorites = !favoritesOnly || r.isFavorite;
+                
+                return matchesSearch && matchesCuisine && matchesFavorites;
+            });
+        }
+
+        function renderRestaurants() {
+            const filtered = getFilteredRestaurants();
+            const grid = document.getElementById('restaurant-grid');
+            const empty = document.getElementById('restaurant-empty');
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                grid.innerHTML = filtered.map(r => `
+                    <div class="card">
+                        ${r.photo ? `<img src="${r.photo}" alt="${r.name}" class="card-image">` : ''}
+                        <div class="card-title">${r.name}</div>
+                        <span class="tag">${r.cuisine}</span>
+                        <div class="card-info">📍 ${r.location}</div>
+                        ${r.starDishes ? `<div class="card-info">⭐ ${r.starDishes}</div>` : ''}
+                        <div class="rating">${'⭐'.repeat(r.rating)}</div>
+                        ${r.notes ? `<div class="card-info">💭 ${r.notes}</div>` : ''}
+                        <div class="card-actions">
+                            <button class="icon-btn favorite-btn ${r.isFavorite ? 'active' : ''}" 
+                                    onclick="toggleFavorite('${r.id}')">
+                                ${r.isFavorite ? '❤️' : '🤍'}
+                            </button>
+                            <button class="icon-btn delete-btn" onclick="deleteRestaurant('${r.id}')">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            if (currentRestaurantView === 'map') {
+                renderMap();
+            }
+        }
+
+        function switchRestaurantView(view) {
+            currentRestaurantView = view;
+            const gridView = document.getElementById('grid-view');
+            const mapView = document.getElementById('map-view');
+            const buttons = document.querySelectorAll('.view-btn');
+
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (view === 'map') {
+                gridView.style.display = 'none';
+                mapView.style.display = 'block';
+                renderMap();
+            } else {
+                gridView.style.display = 'block';
+                mapView.style.display = 'none';
+            }
+        }
+
+        function renderMap() {
+            if (!map) {
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: { lat: 51.5074, lng: -0.1278 },
+                    zoom: 12
+                });
+            }
+
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            const filtered = getFilteredRestaurants().filter(r => r.coordinates);
+
+            if (filtered.length > 0) {
+                const bounds = new google.maps.LatLngBounds();
+                
+                filtered.forEach(r => {
+                    const position = new google.maps.LatLng(r.coordinates.lat, r.coordinates.lng);
+                    
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: r.name,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 10,
+                            fillColor: r.isFavorite ? '#c2543b' : '#6b7c5a',
+                            fillOpacity: 1,
+                            strokeColor: 'white',
+                            strokeWeight: 3
+                        }
+                    });
+
+                    const infowindow = new google.maps.InfoWindow({
+                        content: `
+                            <div style="min-width: 200px; padding: 10px;">
+                                ${r.photo ? `<img src="${r.photo}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">` : ''}
+                                <strong style="font-size: 1.1em;">${r.name}</strong><br>
+                                <span style="color: #6b7c5a;">${r.cuisine}</span><br>
+                                <div style="margin: 8px 0;">${'⭐'.repeat(r.rating)}</div>
+                                ${r.starDishes ? `<div>⭐ ${r.starDishes}</div>` : ''}
+                            </div>
+                        `
+                    });
+
+                    marker.addListener('click', function() {
+                        infowindow.open(map, marker);
+                    });
+
+                    markers.push(marker);
+                    bounds.extend(position);
+                });
+
+                map.fitBounds(bounds);
+                
+                const zoom = map.getZoom();
+                map.setZoom(zoom > 15 ? 15 : zoom);
+            } else {
+                map.setCenter({ lat: 51.5074, lng: -0.1278 });
+                map.setZoom(12);
+            }
+        }
+
+        // RECIPES
+        function openRecipeModal() {
+            document.getElementById('recipe-modal').classList.add('active');
+        }
+
+        function closeRecipeModal() {
+            document.getElementById('recipe-modal').classList.remove('active');
+            document.getElementById('recipe-form').reset();
+        }
+
+        function addRecipe(event) {
+            event.preventDefault();
+            
+            const recipe = {
+                id: Date.now().toString(),
+                title: document.getElementById('recipe-title').value,
+                category: document.getElementById('recipe-category').value,
+                ingredients: document.getElementById('recipe-ingredients').value,
+                instructions: document.getElementById('recipe-instructions').value,
+                time: document.getElementById('recipe-time').value,
+                notes: document.getElementById('recipe-notes').value,
+                createdAt: new Date().toISOString()
+            };
+
+            recipes.push(recipe);
+            saveData('recipes');
+            renderRecipes();
+            updateCounts();
+            closeRecipeModal();
+        }
+
+        function deleteRecipe(id) {
+            if (confirm('Are you sure you want to delete this recipe?')) {
+                recipes = recipes.filter(r => r.id !== id);
+                saveData('recipes');
+                renderRecipes();
+                updateCounts();
+            }
+        }
+
+        function filterRecipes() {
+            renderRecipes();
+        }
+
+        function renderRecipes() {
+            const search = document.getElementById('recipe-search').value.toLowerCase();
+            const categoryFilter = document.getElementById('category-filter').value;
+            
+            const filtered = recipes.filter(r => {
+                const matchesSearch = r.title.toLowerCase().includes(search) || 
+                                    r.ingredients.toLowerCase().includes(search) ||
+                                    (r.notes && r.notes.toLowerCase().includes(search));
+                const matchesCategory = !categoryFilter || r.category === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+
+            const grid = document.getElementById('recipe-grid');
+            const empty = document.getElementById('recipe-empty');
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                grid.innerHTML = filtered.map(r => {
+                    const ingredientsList = r.ingredients.split('\n').filter(i => i.trim());
+                    const displayIngredients = ingredientsList.slice(0, 5).map(ing => 
+                        `<span class="ingredient-tag">${ing.trim()}</span>`
+                    ).join('');
+                    
+                    return `
+                        <div class="card">
+                            <div class="card-title">${r.title}</div>
+                            <span class="tag">${r.category}</span>
+                            ${r.time ? `<div class="card-info">⏱️ ${r.time}</div>` : ''}
+                            <div style="margin: 12px 0;">
+                                ${displayIngredients}
+                                ${ingredientsList.length > 5 ? `<span class="ingredient-tag">+${ingredientsList.length - 5} more</span>` : ''}
+                            </div>
+                            ${r.notes ? `<div class="card-info">💡 ${r.notes.substring(0, 80)}${r.notes.length > 80 ? '...' : ''}</div>` : ''}
+                            <div class="card-actions">
+                                <button class="icon-btn delete-btn" onclick="deleteRecipe('${r.id}')">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // WINES
+        function openWineModal() {
+            document.getElementById('wine-modal').classList.add('active');
+        }
+
+        function closeWineModal() {
+            document.getElementById('wine-modal').classList.remove('active');
+            document.getElementById('wine-form').reset();
+            document.getElementById('wine-photo-preview').style.display = 'none';
+        }
+
+        function addWine(event) {
+            event.preventDefault();
+            
+            const photoInput = document.getElementById('wine-photo');
+            
+            if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    finishAddWine(e.target.result);
+                }
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                finishAddWine(null);
+            }
+        }
+
+        function finishAddWine(photoData) {
+            const wine = {
+                id: Date.now().toString(),
+                name: document.getElementById('wine-name').value,
+                type: document.getElementById('wine-type').value,
+                region: document.getElementById('wine-region').value,
+                grape: document.getElementById('wine-grape').value,
+                year: document.getElementById('wine-year').value,
+                rating: parseInt(document.getElementById('wine-rating').value),
+                notes: document.getElementById('wine-notes').value,
+                pairings: document.getElementById('wine-pairings').value,
+                photo: photoData,
+                createdAt: new Date().toISOString()
+            };
+
+            wines.push(wine);
+            saveData('wines');
+            renderWines();
+            updateCounts();
+            closeWineModal();
+        }
+
+        function deleteWine(id) {
+            if (confirm('Are you sure you want to delete this wine?')) {
+                wines = wines.filter(w => w.id !== id);
+                saveData('wines');
+                renderWines();
+                updateCounts();
+            }
+        }
+
+        function filterWines() {
+            renderWines();
+        }
+
+        function renderWines() {
+            const search = document.getElementById('wine-search').value.toLowerCase();
+            const typeFilter = document.getElementById('wine-type-filter').value;
+            
+            const filtered = wines.filter(w => {
+                const matchesSearch = w.name.toLowerCase().includes(search) || 
+                                    (w.region && w.region.toLowerCase().includes(search)) ||
+                                    (w.grape && w.grape.toLowerCase().includes(search));
+                const matchesType = !typeFilter || w.type === typeFilter;
+                return matchesSearch && matchesType;
+            });
+
+            const grid = document.getElementById('wine-grid');
+            const empty = document.getElementById('wine-empty');
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                grid.innerHTML = filtered.map(w => `
+                    <div class="card">
+                        ${w.photo ? `<img src="${w.photo}" alt="${w.name}" class="card-image">` : ''}
+                        <div class="card-title">${w.name}</div>
+                        <span class="tag">${w.type}</span>
+                        ${w.year ? `<span class="tag">${w.year}</span>` : ''}
+                        ${w.region ? `<div class="card-info">📍 ${w.region}</div>` : ''}
+                        ${w.grape ? `<div class="card-info">🍇 ${w.grape}</div>` : ''}
+                        <div class="rating">${'⭐'.repeat(w.rating)}</div>
+                        ${w.notes ? `<div class="card-info">💭 ${w.notes}</div>` : ''}
+                        ${w.pairings ? `<div class="card-info">🍽️ ${w.pairings}</div>` : ''}
+                        <div class="card-actions">
+                            <button class="icon-btn delete-btn" onclick="deleteWine('${w.id}')">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updateCounts() {
+            document.getElementById('restaurant-count').textContent = 
+                `${restaurants.length} saved place${restaurants.length !== 1 ? 's' : ''}`;
+            document.getElementById('recipe-count').textContent = 
+                `${recipes.length} recipe${recipes.length !== 1 ? 's' : ''}`;
+            document.getElementById('wine-count').textContent = 
+                `${wines.length} wine${wines.length !== 1 ? 's' : ''}`;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
